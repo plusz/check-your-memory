@@ -35,6 +35,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
   const [score, setScore] = useState(0);
   const [timeFrac, setTimeFrac] = useState(1);
   const [wrongIdx, setWrongIdx] = useState<number | null>(null);
+  const [revealReason, setRevealReason] = useState<'wrong' | 'timeout'>('wrong');
   const [endReason, setEndReason] = useState<'wrong' | 'timeout' | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
 
@@ -85,12 +86,13 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
         window.setTimeout(() => setLit(null), onAt + litMs),
       );
     });
-    const doneAt = seq.length * (litMs + gapMs) + 300;
+    // switch to input ~150ms after the last button unlights
+    const lastOffAt = seq.length * litMs + (seq.length - 1) * gapMs;
     timeoutsRef.current.push(
       window.setTimeout(() => {
         setPhase('input');
         setInputIdx(0);
-      }, doneAt),
+      }, lastOffAt + 150),
     );
   }, [phase, seq, clearTimers]);
 
@@ -104,7 +106,8 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
       setTimeFrac(Math.max(0, left / limitMs));
       if (left <= 0) {
         playError();
-        endGame('timeout');
+        setRevealReason('timeout');
+        setPhase('reveal');
       }
     }, 50);
     return () => {
@@ -133,24 +136,34 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
     [clearTimers, session, onSessionChange],
   );
 
-  // After a wrong press: blink the correct button, then game over
+  // Reveal: wrong press -> blink the correct button 3x;
+  // timeout -> flash every remaining (unclicked) step once
   useEffect(() => {
     if (phase !== 'reveal') return;
-    const correct = seq[inputIdx];
-    for (let k = 0; k < 3; k++) {
+    const steps =
+      revealReason === 'timeout'
+        ? seq.slice(inputIdx)
+        : [seq[inputIdx], seq[inputIdx], seq[inputIdx]];
+    steps.forEach((btn, k) => {
       timeoutsRef.current.push(
-        window.setTimeout(() => setLit(correct), k * 700),
-        window.setTimeout(() => setLit(null), k * 700 + 400),
+        window.setTimeout(() => {
+          setLit(btn);
+          playButton(btn);
+        }, k * 700),
+        window.setTimeout(() => setLit(null), k * 700 + 420),
       );
-    }
-    timeoutsRef.current.push(window.setTimeout(() => endGame('wrong'), 3 * 700 + 300));
-  }, [phase, seq, inputIdx, endGame]);
+    });
+    timeoutsRef.current.push(
+      window.setTimeout(() => endGame(revealReason), steps.length * 700 + 250),
+    );
+  }, [phase, seq, inputIdx, revealReason, endGame]);
 
   const press = (i: number) => {
     if (phase !== 'input') return;
     if (i !== seq[inputIdx]) {
       setWrongIdx(i);
       playError();
+      setRevealReason('wrong');
       setPhase('reveal');
       return;
     }
