@@ -13,3 +13,7 @@ dist-ssr
 *.sw?
 .dev.vars
 .wrangler
+
+# local-only content (blog post, not for the repo)
+ARTICLE.md
+article.html
