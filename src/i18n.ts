@@ -84,6 +84,22 @@ const STRINGS = {
     fr: 'Difficile (temps croissant)',
     uk: 'Складний (час зростає)',
   },
+  expert: {
+    pl: 'Ekspert (bez dźwięku)',
+    en: 'Expert (no sound)',
+    es: 'Experto (sin sonido)',
+    de: 'Experte (ohne Ton)',
+    fr: 'Expert (sans son)',
+    uk: 'Експерт (без звуку)',
+  },
+  master: {
+    pl: 'Mistrz (bez dźwięku i cyfr)',
+    en: 'Master (no sound, no numbers)',
+    es: 'Maestro (sin sonido ni números)',
+    de: 'Meister (ohne Ton und Zahlen)',
+    fr: 'Maître (sans son ni chiffres)',
+    uk: 'Майстер (без звуку і цифр)',
+  },
   start: {
     pl: 'Start',
     en: 'Start',

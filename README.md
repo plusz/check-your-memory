@@ -9,7 +9,8 @@ A Simon-style memory game for kids: watch the sequence of lighting buttons, then
 - 8 big round buttons, fullscreen, mobile-first (phone landscape, iPad, desktop)
 - Sequence playback → "Your turn" → repeat → +1 point per correct press
 - Wrong press or timeout = game over; best score kept per session
-- Two modes: **Normal** (fixed 10 s per round) and **Hard** (time scales with sequence length: `2 s + 0.8 s × steps`)
+- Four modes: **Normal** (fixed 10 s), **Hard** (time scales: `2 s + 0.8 s × steps`), **Expert** (Hard + no sound), **Master** (Hard + no sound, no button numbers)
+- In-game settings (⚙️): reset best, switch language / theme / mode
 - 6 languages: PL / EN / ES / DE / FR / UK
 - 4 color themes (Classic Blue, Ocean, Candy, Forest)
 - Player name at start; optional "public computer" mode wipes the session after 5 min of inactivity

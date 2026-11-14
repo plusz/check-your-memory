@@ -109,7 +109,7 @@ export default function StartScreen({ initial, wiped, onStart }: Props) {
 
         <label className="block mt-5 text-lg font-bold">{t('mode')}</label>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          {(['normal', 'hard'] as Mode[]).map((m) => (
+          {(['normal', 'hard', 'expert', 'master'] as Mode[]).map((m) => (
             <button
               key={m}
               type="button"

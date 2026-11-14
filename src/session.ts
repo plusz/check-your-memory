@@ -1,6 +1,6 @@
 import type { Lang } from './i18n';
 
-export type Mode = 'normal' | 'hard';
+export type Mode = 'normal' | 'hard' | 'expert' | 'master';
 
 export interface Session {
   name: string;

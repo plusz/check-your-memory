@@ -57,9 +57,12 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
   }, []);
 
   useEffect(() => () => clearTimers(), [clearTimers]);
-  useEffect(() => setMuted(!session.sound), [session.sound]);
 
-  const limitMs = session.mode === 'hard' ? hardLimitMs(seq.length) : NORMAL_LIMIT_MS;
+  const silent = session.mode === 'expert' || session.mode === 'master';
+  const soundOn = session.sound && !silent;
+  useEffect(() => setMuted(!soundOn), [soundOn]);
+
+  const limitMs = session.mode === 'normal' ? NORMAL_LIMIT_MS : hardLimitMs(seq.length);
 
   // 3-2-1 countdown before the first sequence
   useEffect(() => {
@@ -231,10 +234,11 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
           </button>
           <button
             onClick={() => onSessionChange({ ...session, sound: !session.sound })}
+            disabled={silent}
             className="rounded-xl px-3 py-1.5"
-            style={panel}
+            style={{ ...panel, opacity: silent ? 0.4 : 1 }}
           >
-            {session.sound ? `🔊 ${t('soundOn')}` : `🔇 ${t('soundOff')}`}
+            {soundOn ? `🔊 ${t('soundOn')}` : `🔇 ${t('soundOff')}`}
           </button>
           <button onClick={onExit} className="rounded-xl px-3 py-1.5" style={panel}>
             {t('changePlayer')}
@@ -310,7 +314,9 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
                   }}
                   aria-label={`Button ${i + 1}`}
                 />
-                <span className="text-xl sm:text-2xl font-extrabold drop-shadow">{i + 1}</span>
+                {session.mode !== 'master' && (
+                  <span className="text-xl sm:text-2xl font-extrabold drop-shadow">{i + 1}</span>
+                )}
               </div>
             );
           })}
@@ -384,7 +390,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
               {t('mode')}
             </label>
             <div className="mt-1 grid grid-cols-2 gap-2">
-              {(['normal', 'hard'] as const).map((m) => (
+              {(['normal', 'hard', 'expert', 'master'] as const).map((m) => (
                 <button
                   key={m}
                   onClick={() => onSessionChange({ ...session, mode: m })}
