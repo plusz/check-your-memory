@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { makeT } from '../i18n';
-import { getTheme } from '../themes';
+import { LANGS, makeT } from '../i18n';
+import { THEMES, getTheme } from '../themes';
 import { playButton, playError, playRoundDone, setMuted } from '../sound';
 import { saveSession, type Session } from '../session';
 
@@ -38,6 +38,8 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
   const [revealReason, setRevealReason] = useState<'wrong' | 'timeout'>('wrong');
   const [endReason, setEndReason] = useState<'wrong' | 'timeout' | null>(null);
   const [isNewRecord, setIsNewRecord] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   const timeoutsRef = useRef<number[]>([]);
   const intervalRef = useRef<number | null>(null);
@@ -170,12 +172,12 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
     playButton(i, 0.18);
     setLit(i);
     window.setTimeout(() => setLit(null), 160);
-    const nextScore = scoreRef.current + 1;
-    scoreRef.current = nextScore;
-    setScore(nextScore);
     const nextIdx = inputIdx + 1;
     if (nextIdx >= seq.length) {
-      // round complete -> extend sequence and show again
+      // round complete -> score = memorized sequence length
+      scoreRef.current = seq.length;
+      setScore(seq.length);
+      // extend sequence and show again
       clearTimers();
       playRoundDone();
       setInputIdx(0);
@@ -220,6 +222,14 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
         </span>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => setShowSettings(true)}
+            className="rounded-xl px-3 py-1.5"
+            style={panel}
+            aria-label={t('settings')}
+          >
+            ⚙️
+          </button>
+          <button
             onClick={() => onSessionChange({ ...session, sound: !session.sound })}
             className="rounded-xl px-3 py-1.5"
             style={panel}
@@ -256,7 +266,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
       <div className="mt-3 h-14 flex flex-col items-center justify-center">
         <div className="text-2xl sm:text-3xl font-extrabold drop-shadow">
           {phase === 'show' && t('watch')}
-          {phase === 'input' && t('yourTurn')}
+          {phase === 'input' && `${t('yourTurn')} ${inputIdx}/${seq.length}`}
           {phase === 'reveal' && t('gameOver')}
           {phase === 'over' && (endReason === 'timeout' ? t('timeUp') : t('gameOver'))}
         </div>
@@ -316,6 +326,103 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
             style={{ color: theme.accent }}
           >
             {countdown}
+          </div>
+        </div>
+      )}
+
+      {/* settings overlay */}
+      {showSettings && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 z-20">
+          <div
+            className="w-full max-w-sm rounded-3xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
+            style={{ background: theme.bg, border: `3px solid ${theme.panelBorder}` }}
+          >
+            <div className="text-2xl font-extrabold text-center">⚙️ {t('settings')}</div>
+
+            <label className="block mt-4 text-sm font-bold uppercase tracking-widest opacity-80">
+              {t('language')}
+            </label>
+            <div className="mt-1 grid grid-cols-3 gap-2">
+              {LANGS.map((l) => (
+                <button
+                  key={l.id}
+                  onClick={() => onSessionChange({ ...session, lang: l.id })}
+                  className="rounded-xl px-2 py-2 text-xs font-bold"
+                  style={{
+                    background: session.lang === l.id ? theme.accent : 'rgba(255,255,255,0.15)',
+                    color: session.lang === l.id ? '#111827' : theme.text,
+                  }}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
+
+            <label className="block mt-4 text-sm font-bold uppercase tracking-widest opacity-80">
+              {t('theme')}
+            </label>
+            <div className="mt-1 grid grid-cols-4 gap-2">
+              {THEMES.map((th) => (
+                <button
+                  key={th.id}
+                  onClick={() => onSessionChange({ ...session, themeId: th.id })}
+                  title={th.label}
+                  className="h-10 rounded-xl"
+                  style={{
+                    background: th.button,
+                    outline:
+                      session.themeId === th.id
+                        ? `3px solid ${th.accent}`
+                        : '2px solid rgba(255,255,255,0.2)',
+                    outlineOffset: 2,
+                  }}
+                />
+              ))}
+            </div>
+
+            <label className="block mt-4 text-sm font-bold uppercase tracking-widest opacity-80">
+              {t('mode')}
+            </label>
+            <div className="mt-1 grid grid-cols-2 gap-2">
+              {(['normal', 'hard'] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => onSessionChange({ ...session, mode: m })}
+                  className="rounded-xl px-3 py-2 text-xs font-bold"
+                  style={{
+                    background: session.mode === m ? theme.accent : 'rgba(255,255,255,0.15)',
+                    color: session.mode === m ? '#111827' : theme.text,
+                  }}
+                >
+                  {t(m)}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => {
+                onSessionChange({ ...session, best: 0 });
+                setResetDone(true);
+                window.setTimeout(() => setResetDone(false), 2500);
+              }}
+              className="mt-5 w-full rounded-2xl py-3 font-bold"
+              style={{ background: '#dc2626', color: '#fff' }}
+            >
+              🗑️ {t('resetBest')}
+            </button>
+            {resetDone && (
+              <p className="mt-2 text-center text-sm font-bold" style={{ color: theme.accent }}>
+                {t('resetDone')}
+              </p>
+            )}
+
+            <button
+              onClick={() => setShowSettings(false)}
+              className="mt-4 w-full rounded-2xl py-3 font-extrabold"
+              style={{ background: theme.accent, color: '#111827' }}
+            >
+              {t('close')}
+            </button>
           </div>
         </div>
       )}
