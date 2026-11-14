@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { LANGS, makeT, type Lang } from '../i18n';
 import { THEMES, getTheme } from '../themes';
-import type { Mode, Session } from '../session';
+import { loadPlayer, type Mode, type Session } from '../session';
 
 interface Props {
   initial: Session | null;
@@ -18,6 +18,7 @@ export default function StartScreen({ initial, wiped, onStart }: Props) {
 
   const t = makeT(lang);
   const theme = getTheme(themeId);
+  const savedPlayer = !isPublic && name.trim() ? loadPlayer(name) : null;
 
   const submit = () => {
     const trimmed = name.trim();
@@ -60,6 +61,11 @@ export default function StartScreen({ initial, wiped, onStart }: Props) {
           className="mt-2 w-full rounded-2xl px-4 py-3 text-xl text-gray-900 outline-none focus:ring-4"
           style={{ ['--tw-ring-color' as string]: theme.accent }}
         />
+        {savedPlayer && savedPlayer.best > 0 && (
+          <p className="mt-2 text-sm font-bold" style={{ color: theme.accent }}>
+            {t('welcomeBack')} {t('best')}: {savedPlayer.best} 🏆
+          </p>
+        )}
 
         <label className="flex items-start gap-3 mt-4 cursor-pointer text-sm leading-snug">
           <input

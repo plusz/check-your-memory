@@ -204,6 +204,14 @@ const STRINGS = {
     fr: 'Son : non',
     uk: 'Звук: вимк.',
   },
+  welcomeBack: {
+    pl: 'Witaj ponownie!',
+    en: 'Welcome back!',
+    es: '¡Bienvenido de nuevo!',
+    de: 'Willkommen zurück!',
+    fr: 'Bon retour !',
+    uk: 'З поверненням!',
+  },
   settings: {
     pl: 'Ustawienia',
     en: 'Settings',

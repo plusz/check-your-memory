@@ -41,3 +41,39 @@ export function saveSession(s: Session) {
 export function clearSession() {
   sessionStorage.removeItem(KEY);
 }
+
+// --- Persistent per-player records (localStorage; skipped on public computers) ---
+
+export interface PlayerRecord {
+  name: string;
+  best: number;
+  lang: Lang;
+  themeId: string;
+  mode: Mode;
+}
+
+const PLAYERS_KEY = 'check-your-memory:players';
+
+function loadPlayers(): Record<string, PlayerRecord> {
+  try {
+    return JSON.parse(localStorage.getItem(PLAYERS_KEY) ?? '{}');
+  } catch {
+    return {};
+  }
+}
+
+export function loadPlayer(name: string): PlayerRecord | null {
+  return loadPlayers()[name.trim().toLowerCase()] ?? null;
+}
+
+export function savePlayer(s: Session) {
+  const players = loadPlayers();
+  players[s.name.trim().toLowerCase()] = {
+    name: s.name,
+    best: s.best,
+    lang: s.lang,
+    themeId: s.themeId,
+    mode: s.mode,
+  };
+  localStorage.setItem(PLAYERS_KEY, JSON.stringify(players));
+}

@@ -3,7 +3,9 @@ import StartScreen from './components/StartScreen';
 import GameScreen from './components/GameScreen';
 import {
   clearSession,
+  loadPlayer,
   loadSession,
+  savePlayer,
   saveSession,
   type Session,
 } from './session';
@@ -38,14 +40,22 @@ export default function App() {
   }, [session?.isPublic]);
 
   const start = useCallback((s: Session) => {
-    saveSession(s);
-    setSession(s);
+    let merged = s;
+    if (!s.isPublic) {
+      // returning player: restore their persistent record
+      const saved = loadPlayer(s.name);
+      merged = { ...s, best: Math.max(saved?.best ?? 0, s.best) };
+      savePlayer(merged);
+    }
+    saveSession(merged);
+    setSession(merged);
     setWiped(false);
     setPlaying(true);
   }, []);
 
   const updateSession = useCallback((s: Session) => {
     saveSession(s);
+    if (!s.isPublic) savePlayer(s);
     setSession(s);
   }, []);
 
