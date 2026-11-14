@@ -8,7 +8,12 @@ const COUNT = 8;
 const NORMAL_LIMIT_MS = 10_000;
 const hardLimitMs = (seqLen: number) => 2000 + 800 * seqLen;
 
-type Phase = 'show' | 'input' | 'over';
+// Sequence playback pacing — tune these to taste
+const LIT_MS = 1000; // how long a button stays lit during playback
+const GAP_MS = 500; // pause between lit buttons
+const COUNTDOWN_MS = 800; // per tick of the 3-2-1 countdown
+
+type Phase = 'countdown' | 'show' | 'input' | 'reveal' | 'over';
 
 interface Props {
   session: Session;
@@ -22,7 +27,8 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
   const t = makeT(session.lang);
   const theme = getTheme(session.themeId);
 
-  const [phase, setPhase] = useState<Phase>('show');
+  const [phase, setPhase] = useState<Phase>('countdown');
+  const [countdown, setCountdown] = useState(3);
   const [seq, setSeq] = useState<number[]>(() => [rand()]);
   const [lit, setLit] = useState<number | null>(null);
   const [inputIdx, setInputIdx] = useState(0);
@@ -52,12 +58,23 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
 
   const limitMs = session.mode === 'hard' ? hardLimitMs(seq.length) : NORMAL_LIMIT_MS;
 
+  // 3-2-1 countdown before the first sequence
+  useEffect(() => {
+    if (phase !== 'countdown') return;
+    if (countdown <= 0) {
+      setPhase('show');
+      return;
+    }
+    const id = window.setTimeout(() => setCountdown((c) => c - 1), COUNTDOWN_MS);
+    return () => window.clearTimeout(id);
+  }, [phase, countdown]);
+
   // Playback of the sequence
   useEffect(() => {
     if (phase !== 'show') return;
     clearTimers();
-    const litMs = Math.max(320, 620 - seq.length * 15);
-    const gapMs = 220;
+    const litMs = LIT_MS;
+    const gapMs = GAP_MS;
     seq.forEach((btn, i) => {
       const onAt = i * (litMs + gapMs);
       timeoutsRef.current.push(
@@ -85,7 +102,10 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
     intervalRef.current = window.setInterval(() => {
       const left = deadline - Date.now();
       setTimeFrac(Math.max(0, left / limitMs));
-      if (left <= 0) endGame('timeout');
+      if (left <= 0) {
+        playError();
+        endGame('timeout');
+      }
     }, 50);
     return () => {
       if (intervalRef.current !== null) {
@@ -103,7 +123,6 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
       setEndReason(reason);
       setLit(null);
       setPhase('over');
-      playError();
       if (scoreRef.current > session.best) {
         setIsNewRecord(true);
         const next = { ...session, best: scoreRef.current };
@@ -114,11 +133,25 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
     [clearTimers, session, onSessionChange],
   );
 
+  // After a wrong press: blink the correct button, then game over
+  useEffect(() => {
+    if (phase !== 'reveal') return;
+    const correct = seq[inputIdx];
+    for (let k = 0; k < 3; k++) {
+      timeoutsRef.current.push(
+        window.setTimeout(() => setLit(correct), k * 700),
+        window.setTimeout(() => setLit(null), k * 700 + 400),
+      );
+    }
+    timeoutsRef.current.push(window.setTimeout(() => endGame('wrong'), 3 * 700 + 300));
+  }, [phase, seq, inputIdx, endGame]);
+
   const press = (i: number) => {
     if (phase !== 'input') return;
     if (i !== seq[inputIdx]) {
       setWrongIdx(i);
-      endGame('wrong');
+      playError();
+      setPhase('reveal');
       return;
     }
     playButton(i, 0.18);
@@ -153,7 +186,8 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
     setWrongIdx(null);
     setEndReason(null);
     setIsNewRecord(false);
-    setPhase('show');
+    setCountdown(3);
+    setPhase('countdown');
   };
 
   const panel = {
@@ -210,6 +244,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
         <div className="text-2xl sm:text-3xl font-extrabold drop-shadow">
           {phase === 'show' && t('watch')}
           {phase === 'input' && t('yourTurn')}
+          {phase === 'reveal' && t('gameOver')}
           {phase === 'over' && (endReason === 'timeout' ? t('timeUp') : t('gameOver'))}
         </div>
         {phase === 'input' && (
@@ -258,6 +293,19 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
           })}
         </div>
       </div>
+
+      {/* 3-2-1 countdown overlay */}
+      {phase === 'countdown' && (
+        <div className="fixed inset-0 flex items-center justify-center pointer-events-none">
+          <div
+            key={countdown}
+            className="btn-pop text-[9rem] sm:text-[14rem] font-extrabold drop-shadow-2xl"
+            style={{ color: theme.accent }}
+          >
+            {countdown}
+          </div>
+        </div>
+      )}
 
       {/* game over overlay */}
       {phase === 'over' && (
