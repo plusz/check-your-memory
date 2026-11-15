@@ -13,7 +13,7 @@ const LIT_MS = 1000; // how long a button stays lit during playback
 const GAP_MS = 500; // pause between lit buttons
 const COUNTDOWN_MS = 800; // per tick of the 3-2-1 countdown
 
-type Phase = 'countdown' | 'show' | 'input' | 'reveal' | 'over';
+type Phase = 'countdown' | 'show' | 'input' | 'rounddone' | 'reveal' | 'over';
 
 interface Props {
   session: Session;
@@ -184,6 +184,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
       clearTimers();
       playRoundDone();
       setInputIdx(0);
+      setPhase('rounddone'); // block stray taps during the celebration pause
       timeoutsRef.current.push(
         window.setTimeout(() => {
           setSeq((s) => [...s, rand()]);
@@ -271,6 +272,7 @@ export default function GameScreen({ session, onSessionChange, onExit }: Props) 
         <div className="text-2xl sm:text-3xl font-extrabold drop-shadow">
           {phase === 'show' && t('watch')}
           {phase === 'input' && `${t('yourTurn')} ${inputIdx}/${seq.length}`}
+          {phase === 'rounddone' && '✅'}
           {phase === 'reveal' && t('gameOver')}
           {phase === 'over' && (endReason === 'timeout' ? t('timeUp') : t('gameOver'))}
         </div>
